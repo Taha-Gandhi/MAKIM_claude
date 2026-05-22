@@ -20,7 +20,7 @@ logger = logging.getLogger("MAKIM.LLMAnalyst")
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # Free router. OpenRouter chooses an available free model.
-MODEL = "mistralai/mistral-7b-instruct:free"
+MODEL = "openrouter/free"
 
 
 SYSTEM_PROMPT = """You are MAKIM's LLM Analyst, a Linux kernel security analyst.
