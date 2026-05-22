@@ -67,11 +67,13 @@ def main():
     # ── 5. Read the Claude API key from environment variable ───────────────
     # os.environ is a dictionary of all environment variables set in your shell
     # You set it beforehand with: export ANTHROPIC_API_KEY='sk-ant-...'
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+
     if not api_key:
-        print("[WARNING] ANTHROPIC_API_KEY environment variable not found.")
-        print("          LLM (AI) analysis will be skipped.")
-        print("          To enable: export ANTHROPIC_API_KEY='your-api-key-here'")
+        print("[WARNING] OPENROUTER_API_KEY environment variable not found.")
+        print("          LLM analysis will use local rule-based fallback.")
+        print("          To enable OpenRouter:")
+        print("          export OPENROUTER_API_KEY='your-openrouter-key'")
         print()
 
     # ── 6. Create the Orchestrator and run it ──────────────────────────────
