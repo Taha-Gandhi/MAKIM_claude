@@ -232,12 +232,13 @@ class RootkitPatternAgent:
                         # [stack] and [vdso] are normal anonymous executable regions
                         is_normal_anon = filename in ("[stack]", "[vdso]", "[vsyscall]",
                                                       "[vvar]", "[heap]")
+                        allowed_memory_processes = self.allowlist.get("allowed_memory_processes", [])
 
+                        if any(proc["name"].startswith(name) for name in allowed_memory_processes):
+                            continue
+                        
                         if is_executable and is_anonymous and not is_normal_anon:
-                            allowed_memory_processes = self.allowlist.get("allowed_memory_processes", [])
-
-                            if any(proc["name"].startswith(name) for name in allowed_memory_processes):
-                                continue
+                            
                             severity = "HIGH" if "w" in permissions else "MEDIUM"
 
                             findings.append({

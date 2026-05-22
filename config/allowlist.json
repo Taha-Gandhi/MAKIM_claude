@@ -29,6 +29,7 @@
       "gnome-terminal-",
       "unattended-upgr",
       "systemd",
+      "gnome-session-b",
       "snapd"
     ],
     "allowed_ports": [

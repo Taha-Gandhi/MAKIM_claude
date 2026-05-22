@@ -20,7 +20,7 @@ logger = logging.getLogger("MAKIM.LLMAnalyst")
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # Free router. OpenRouter chooses an available free model.
-MODEL = "openrouter/free"
+MODEL = "mistralai/mistral-7b-instruct:free"
 
 
 SYSTEM_PROMPT = """You are MAKIM's LLM Analyst, a Linux kernel security analyst.
@@ -142,11 +142,22 @@ class LLMAnalystAgent:
             raise APIError(f"No choices returned: {response_text[:300]}")
 
         message = choices[0].get("message", {})
+
         content = message.get("content")
 
-        if not content:
-            raise APIError(f"No message content returned: {response_text[:300]}")
+        # Sometimes OpenRouter returns list-style content
+        if isinstance(content, list):
+            text_parts = []
 
+            for item in content:
+                if isinstance(item, dict):
+                    if item.get("type") == "text":
+                        text_parts.append(item.get("text", ""))
+
+            content = "\n".join(text_parts)
+
+        if not content:
+            raise APIError(f"No message content returned: {response_text[:500]}")
         return content
 
     def _parse_response(self, raw_text: str) -> dict:

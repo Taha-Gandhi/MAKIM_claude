@@ -210,7 +210,7 @@ class ReportAgent:
                   f"(run with --baseline to create one)")
 
         # ── AI Summary ────────────────────────────────────────────────────
-        print(f"\n{Color.BOLD}┌─ AI ANALYSIS (Claude) {'─' * 41}┐{Color.RESET}")
+        print(f"\n{Color.BOLD}┌─ AI ANALYSIS (OpenRouter LLM) {'─' * 41}┐{Color.RESET}")
         print(f"  {report['ai_summary']}")
 
         if report["ai_analysis"] and report["ai_analysis"] != report["ai_summary"]:
