@@ -12,6 +12,7 @@ class ConfigLoader:
             return {
                 "allowed_modules": [],
                 "allowed_processes": [],
+                "allowed_memory_processes": [],
                 "allowed_ports": []
             }
 

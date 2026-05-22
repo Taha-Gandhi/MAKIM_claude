@@ -5,14 +5,14 @@ This is the file you run to start MAKIM.
 Think of it as the "front door" of the program.
 
 HOW TO RUN:
-  sudo python main.py              # Full scan (recommended)
-  sudo python main.py --baseline   # Save a new trusted baseline snapshot
+  sudo -E python3 main.py             # Full scan (recommended)
+  sudo -E python3 main.py --baseline   # Save a new trusted baseline snapshot
   python main.py                   # Limited scan (no root access)
 
 WHAT IT DOES:
   1. Checks you're on Linux
   2. Warns if you're not root (some /proc files need root)
-  3. Reads your ANTHROPIC_API_KEY from environment
+  3. Reads your OPENROUTER_API_KEY from environment
   4. Hands control to the Orchestrator which runs all 5 agents
 """
 
@@ -29,7 +29,7 @@ def main():
     # argparse reads the words after "python main.py" on the command line
     parser = argparse.ArgumentParser(
         description="MAKIM — Multi-Agent Kernel Integrity Monitor",
-        epilog="Example: sudo python main.py --baseline"
+        epilog="Example: sudo -E python3 main.py --baseline"
     )
     parser.add_argument(
         "--baseline",
@@ -61,7 +61,7 @@ def main():
     # os.geteuid() returns 0 if you are root (the super-user), else your user ID
     if os.geteuid() != 0:
         print("[WARNING] Not running as root. Some /proc files will be unreadable.")
-        print("          For a full scan, run: sudo python main.py")
+        print("          For a full scan, run: sudo -E python3 main.py")
         print()
 
     # ── 5. Read the Claude API key from environment variable ───────────────

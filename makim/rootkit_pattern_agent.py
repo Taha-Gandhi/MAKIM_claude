@@ -41,6 +41,7 @@ KEY CONCEPTS:
 import re
 import subprocess
 import logging
+from makim.config_loader import ConfigLoader
 
 logger = logging.getLogger("MAKIM.RootkitPattern")
 
@@ -111,6 +112,7 @@ class RootkitPatternAgent:
     }
 
     def __init__(self):
+        self.allowlist = ConfigLoader.load_allowlist()
         logger.info("Rootkit Pattern Agent initialized.")
 
     def run(self, snapshot: dict) -> dict:
@@ -232,13 +234,19 @@ class RootkitPatternAgent:
                                                       "[vvar]", "[heap]")
 
                         if is_executable and is_anonymous and not is_normal_anon:
+                            allowed_memory_processes = self.allowlist.get("allowed_memory_processes", [])
+
+                            if any(proc["name"].startswith(name) for name in allowed_memory_processes):
+                                continue
+                            severity = "HIGH" if "w" in permissions else "MEDIUM"
+
                             findings.append({
                                 "type":        "ANON_EXECUTABLE_MAPPING",
-                                "severity":    "HIGH",
+                                "severity":    severity,
                                 "description": f"Process '{proc['name']}' (PID {pid}) has an anonymous "
-                                               f"executable memory region ({permissions}). "
-                                               f"This is a classic indicator of injected shellcode or "
-                                               f"a memory-resident implant.",
+                                            f"executable memory region ({permissions}). "
+                                            f"Writable + executable memory is more suspicious than "
+                                            f"readable + executable memory.",
                                 "details": {
                                     "pid":         pid,
                                     "process":     proc["name"],

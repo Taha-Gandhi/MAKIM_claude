@@ -3,11 +3,14 @@
       "bluetooth",
       "btusb",
       "bnep",
+      "btbcm",
+      "btmtk",
+      "btrtl",
+      "btintel",
       "vmwgfx",
       "vmw_balloon",
       "snd"
     ],
-  
     "allowed_processes": [
       "systemd",
       "gnome-shell",
@@ -16,9 +19,18 @@
       "packagekitd",
       "rtkit-daemon",
       "NetworkManager",
+      "snapd",
+      "unattended-upgr",
+      "gnome-terminal-"
+    ],
+    "allowed_memory_processes": [
+      "gnome-shell",
+      "gjs",
+      "gnome-terminal-",
+      "unattended-upgr",
+      "systemd",
       "snapd"
     ],
-  
     "allowed_ports": [
       22,
       53,

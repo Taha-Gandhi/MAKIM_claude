@@ -77,7 +77,7 @@ class Orchestrator:
         Initialize all 5 agents.
 
         Args:
-            api_key:     Anthropic API key for LLM analysis (can be None)
+            api_key:    OpenRouter API key for LLM analysis (can be None)
             output_file: Path to save the JSON report
         """
         logger.info("Orchestrator initializing all agents...")

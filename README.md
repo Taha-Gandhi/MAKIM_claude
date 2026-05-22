@@ -26,7 +26,7 @@ Think of it like having 5 security guards, each with a specific job:
 1. **Linux** — Ubuntu, Debian, Fedora, Arch, etc. MAKIM reads from `/proc` which only exists on Linux.
 2. **Python 3.8 or later** — Check with: `python3 --version`
 3. **Root access** (recommended) — Some `/proc` files need `sudo`
-4. **An Anthropic API key** (optional but recommended) — Get one at https://console.anthropic.com/
+4. **An OpenRouter Free LLM API key** 
 
 ---
 
@@ -67,13 +67,14 @@ ls -la
 
 ## Quick Start (5 minutes to first scan)
 
-### Step 1: Set your Anthropic API key
+### Step 1: Set your OpenRouter Free LLM API key
 ```bash
 # Replace 'sk-ant-...' with your actual API key
-export ANTHROPIC_API_KEY='sk-ant-api03-...'
+export OPENROUTER_API_KEY='your-openrouter-key-here'
+sudo -E python3 main.py
 
 # To make this permanent (survives terminal close), add to ~/.bashrc:
-echo "export ANTHROPIC_API_KEY='sk-ant-api03-...'" >> ~/.bashrc
+echo "export OPENROUTER_API_KEY='sk-ant-api03-...'" >> ~/.bashrc
 source ~/.bashrc
 ```
 
@@ -172,8 +173,8 @@ no readable status file — a discrepancy that hints at hidden processes.
 
 ### How the LLM Analysis Works
 1. We format all findings as structured text
-2. We POST it to `https://api.anthropic.com/v1/messages`
-3. Claude reads the findings and returns a JSON assessment
+2. We POST it to `OpenRouter API`
+3. OpenRouter reads the findings and returns a JSON assessment
 4. We parse that JSON and include it in the report
 
 ---
@@ -214,7 +215,7 @@ makim_project/
     ├── scanner_agent.py         ← Agent 1: Reads /proc and system data
     ├── anomaly_detector.py      ← Agent 2: Baseline comparison
     ├── rootkit_pattern_agent.py ← Agent 3: Known rootkit signatures
-    ├── llm_analyst_agent.py     ← Agent 4: Claude API integration
+    ├── llm_analyst_agent.py     ← Agent 4: OpenRouter API integration
     └── report_agent.py          ← Agent 5: Terminal + JSON report
 ```
 
@@ -234,17 +235,17 @@ sudo python3 main.py
 sudo python3 main.py --baseline
 ```
 
-### "ANTHROPIC_API_KEY not set"
+### "OPENROUTER_API_KEY not set"
 ```bash
 # Set your API key
-export ANTHROPIC_API_KEY='your-key-here'
+export OPENROUTER_API_KEY='your-key-here'
 # Or run without AI (still does anomaly + pattern detection)
 sudo python3 main.py
 ```
 
 ### API errors (401 Unauthorized)
 - Your API key is wrong or expired
-- Get a new one at https://console.anthropic.com/
+- Get a new one at `openrouter.com/free`
 
 ### API errors (429 Rate Limited)
 - You've made too many requests. Wait a minute and try again.

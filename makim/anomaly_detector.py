@@ -30,7 +30,7 @@ import os
 import json
 import logging
 from datetime import datetime  # datetime lets us work with dates/times
-from config_loader import ConfigLoader
+from makim.config_loader import ConfigLoader
 
 logger = logging.getLogger("MAKIM.AnomalyDetector")
 
