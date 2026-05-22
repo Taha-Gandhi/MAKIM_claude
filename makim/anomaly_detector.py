@@ -30,6 +30,7 @@ import os
 import json
 import logging
 from datetime import datetime  # datetime lets us work with dates/times
+from config_loader import ConfigLoader
 
 logger = logging.getLogger("MAKIM.AnomalyDetector")
 
@@ -52,6 +53,7 @@ class AnomalyDetector:
                           Default: "makim_baseline.json" in the current directory.
         """
         self.baseline_path = baseline_path
+        self.allowlist = ConfigLoader.load_allowlist()
         self.baseline = None   # Will be loaded from disk
         logger.info(f"Anomaly Detector initialized. Baseline path: {baseline_path}")
 
@@ -194,6 +196,8 @@ class AnomalyDetector:
         removed_modules = baseline_names - current_names
 
         for name in new_modules:
+            if name in self.allowlist["allowed_modules"]:
+                continue
             anomalies.append({
                 "type":        "NEW_MODULE",
                 "severity":    "HIGH",
@@ -203,6 +207,8 @@ class AnomalyDetector:
             })
 
         for name in removed_modules:
+            if name in self.allowlist["allowed_modules"]:
+                continue
             anomalies.append({
                 "type":        "MISSING_MODULE",
                 "severity":    "MEDIUM",
@@ -277,6 +283,8 @@ class AnomalyDetector:
             # Check if this name is a known transient prefix
             is_transient = any(name.startswith(t) for t in COMMON_TRANSIENTS)
             if not is_transient:
+                if name in self.allowlist["allowed_processes"]:
+                    continue
                 anomalies.append({
                     "type":        "NEW_PROCESS",
                     "severity":    "MEDIUM",

@@ -1,0 +1,28 @@
+{
+    "allowed_modules": [
+      "bluetooth",
+      "btusb",
+      "bnep",
+      "vmwgfx",
+      "vmw_balloon",
+      "snd"
+    ],
+  
+    "allowed_processes": [
+      "systemd",
+      "gnome-shell",
+      "gjs",
+      "dbus",
+      "packagekitd",
+      "rtkit-daemon",
+      "NetworkManager",
+      "snapd"
+    ],
+  
+    "allowed_ports": [
+      22,
+      53,
+      80,
+      443
+    ]
+  }
