@@ -1,5 +1,5 @@
 # MAKIM — Multi-Agent Kernel Integrity Monitor
-### A multi-AI agent framework for detecting rootkit-like behavior on Linux
+### A multi-AI agent, user-level Linux security monitoring application for detecting rootkit-like behavior on Linux
 
 ---
 
@@ -27,41 +27,6 @@ Think of it like having 5 security guards, each with a specific job:
 2. **Python 3.8 or later** — Check with: `python3 --version`
 3. **Root access** (recommended) — Some `/proc` files need `sudo`
 4. **An OpenRouter Free LLM API key** 
-
----
-
-## Installation
-
-```bash
-# Step 1: Clone or download MAKIM
-# If you have git installed:
-git clone https://github.com/yourusername/makim.git
-cd makim
-
-# OR just create a folder and copy the files there
-mkdir makim && cd makim
-# (copy all files here)
-
-# Step 2: Verify Python version
-python3 --version
-# Should show Python 3.8.x or higher
-
-# Step 3: No pip install needed! MAKIM uses only Python's standard library.
-# Just confirm the project structure looks like this:
-ls -la
-# Should show:
-#   main.py
-#   requirements.txt
-#   README.md
-#   makim/
-#       __init__.py
-#       orchestrator.py
-#       scanner_agent.py
-#       anomaly_detector.py
-#       rootkit_pattern_agent.py
-#       llm_analyst_agent.py
-#       report_agent.py
-```
 
 ---
 
@@ -249,22 +214,6 @@ sudo python3 main.py
 
 ### API errors (429 Rate Limited)
 - You've made too many requests. Wait a minute and try again.
-
----
-
-## Extending MAKIM (for later)
-
-Once you're comfortable with the codebase, you can extend MAKIM by:
-
-1. **Adding new patterns** to `RootkitPatternAgent.SUSPICIOUS_MODULE_PATTERNS`
-2. **Adding new anomaly checks** as `_check_*` methods in `AnomalyDetector`
-3. **Changing the AI model** in `llm_analyst_agent.py` (MODEL constant)
-4. **Adding email/SMS alerts** in `ReportAgent._trigger_alert()`
-5. **Scheduling regular scans** with a cron job:
-   ```bash
-   # Add to /etc/crontab — run every hour
-   0 * * * * root python3 /path/to/makim/main.py --output /var/log/makim/$(date +\%H).json
-   ```
 
 ---
 
