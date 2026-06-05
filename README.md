@@ -3,24 +3,42 @@
 
 ---
 
-## What is MAKIM?
+## Overview
 
-MAKIM is a Python program that runs on Linux and uses specialized AI/security agents to detect
-if your Linux system has been compromised by a rootkit — a type of malware that hides
-deep inside the operating system kernel.
+MAKIM (Multi-Agent Kernel Integrity Monitor) is a Linux cybersecurity framework that detects potential rootkit activity through a cooperative multi-agent architecture.
 
-Think of it like having 5 security guards, each with a specific job:
+The system operates in two complementary modes:
 
-| Agent | Job |
-|-------|-----|
-| **Agent 1: Scanner** | Reads raw data from the kernel (like a camera recording everything) |
-| **Agent 2: Anomaly Detector** | Compares the recording to a known-good snapshot |
-| **Agent 3: Pattern Agent** | Checks for known rootkit tricks and behaviors |
-| **Agent 4: LLM Analyst** | Sends findings to OpenRouter for intelligent reasoning |
-| **Agent 5: Report Agent** | Formats everything into a readable report + JSON file |
-| **Agent 6: Live Sentinel** | Uses eBPF/bpftrace to watch selected kernel events in real time |
+### Snapshot Analysis Pipeline
 
----
+The snapshot pipeline performs system integrity assessment by:
+
+* Collecting kernel modules, processes, and network information
+* Comparing the current system state against a trusted baseline
+* Detecting anomalies and rootkit-related indicators
+* Generating an AI-assisted security assessment
+* Producing terminal and JSON reports
+
+### Live Sentinel Runtime Monitoring
+
+The Live Sentinel agent uses eBPF/bpftrace to observe selected kernel events in real time, including:
+
+* Kernel module load/unload attempts
+* Sensitive kernel file access
+* Outbound network connections
+
+Observed processes are assigned explainable trust scores based on runtime behavior.
+
+### Agent Architecture
+
+| Agent                 | Responsibility                    |
+| --------------------- | --------------------------------- |
+| Scanner Agent         | Collect system and kernel state   |
+| Anomaly Detector      | Compare against trusted baseline  |
+| Rootkit Pattern Agent | Detect rootkit-related indicators |
+| LLM Analyst Agent     | Generate AI-assisted assessment   |
+| Report Agent          | Produce terminal and JSON reports |
+| Live Sentinel Agent   | Monitor runtime kernel activity   |
 
 ## Prerequisites (what you need before starting)
 
@@ -179,10 +197,10 @@ Live Sentinel also assigns each observed process a **trust score**:
 
 | Score Range | Label | Meaning |
 |-------------|-------|---------|
-| 90-100 | `TRUSTED` | Normal or low-risk observed behavior |
-| 70-89 | `WATCH` | Some suspicious activity worth reviewing |
-| 40-69 | `SUSPICIOUS` | Multiple or stronger suspicious indicators |
-| 0-39 | `HIGH_RISK` | Strong live indicators such as module-load behavior |
+| 80+ | `TRUSTED` | Normal or low-risk observed behavior |
+| 50-79 | `WATCH` | Some suspicious activity worth reviewing |
+| 25-49 | `SUSPICIOUS` | Multiple or stronger suspicious indicators |
+| 0-24 | `HIGH_RISK` | Strong live indicators such as module-load behavior |
 
 The score starts at 100 and drops when MAKIM observes risky actions. For example,
 network connects are low impact, sensitive kernel file opens are medium impact,
@@ -237,6 +255,15 @@ This starts Live Sentinel first, waits briefly, then triggers MAKIM's harmless
 demo activity automatically so the timing cannot be missed.
 
 ---
+
+## Key Contributions
+
+* Multi-agent architecture for Linux rootkit detection.
+* Combination of snapshot-based integrity monitoring and runtime eBPF monitoring.
+* Explainable trust scoring for observed processes.
+* AI-assisted security assessment through an LLM analyst agent.
+* Modular design that allows agents to be extended independently.
+
 
 ## Limitations & Important Notes
 
