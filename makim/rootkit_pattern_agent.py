@@ -209,6 +209,8 @@ class RootkitPatternAgent:
         processes = snapshot.get("processes", [])
 
         for proc in processes:
+            anon_exec_regions = []
+            highest_severity = "MEDIUM"
             pid = proc["pid"]
             maps_path = f"/proc/{pid}/maps"
 
@@ -238,23 +240,31 @@ class RootkitPatternAgent:
                             continue
                         
                         if is_executable and is_anonymous and not is_normal_anon:
-                            
-                            severity = "HIGH" if "w" in permissions else "MEDIUM"
+
+                            anon_exec_regions.append({
+                                "address": parts[0],
+                                "permissions": permissions,
+                                "region": filename or "[anonymous]"
+                            })
+
+                            if "w" in permissions:
+                                highest_severity = "HIGH"
+                        if anon_exec_regions:
 
                             findings.append({
-                                "type":        "ANON_EXECUTABLE_MAPPING",
-                                "severity":    severity,
-                                "description": f"Process '{proc['name']}' (PID {pid}) has an anonymous "
-                                            f"executable memory region ({permissions}). "
-                                            f"Writable + executable memory is more suspicious than "
-                                            f"readable + executable memory.",
+                                "type": "ANON_EXECUTABLE_MAPPING",
+                                "severity": highest_severity,
+                                "description":
+                                    f"Process '{proc['name']}' (PID {pid}) contains "
+                                    f"{len(anon_exec_regions)} anonymous executable "
+                                    f"memory region(s).",
+
                                 "details": {
-                                    "pid":         pid,
-                                    "process":     proc["name"],
-                                    "address":     parts[0],
-                                    "permissions": permissions,
-                                    "region":      filename or "[anonymous]",
-                                },
+                                    "pid": pid,
+                                    "process": proc["name"],
+                                    "occurrences": len(anon_exec_regions),
+                                    "regions": anon_exec_regions
+                                }
                             })
             except (PermissionError, FileNotFoundError, ProcessLookupError):
                 continue  # Process may have ended or be unreadable — that's OK
