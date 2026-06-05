@@ -1,0 +1,40 @@
+                     MAKIM
+
+         Snapshot Analysis Pipeline
+
+ ┌──────────────┐
+ │ Scanner      │
+ └──────┬───────┘
+        │
+        ▼
+ ┌──────────────┐
+ │ Anomaly      │
+ │ Detector     │
+ └──────┬───────┘
+        │
+        ▼
+ ┌──────────────┐
+ │ Rootkit      │
+ │ Pattern      │
+ └──────┬───────┘
+        │
+        ▼
+ ┌──────────────┐
+ │ LLM Analyst  │
+ └──────┬───────┘
+        │
+        ▼
+ ┌──────────────┐
+ │ Report Agent │
+ └──────────────┘
+
+
+      Runtime Monitoring Pipeline
+
+ ┌───────────────────────────┐
+ │ Live Sentinel Agent       │
+ │ (eBPF / bpftrace)         │
+ └─────────────┬─────────────┘
+               │
+               ▼
+     Explainable Trust Scores
