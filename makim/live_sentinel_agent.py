@@ -294,7 +294,6 @@ tracepoint:syscalls:sys_enter_openat2
             processes[key]["trust_score"] = max(0, processes[key]["trust_score"] - penalty)
             processes[key]["total_penalty"] += penalty
             event_counts[key][event_type] += 1
-            process["confidence"] = confidence_from_score(process["trust_score"])
 
             path = event.get("path")
             if path and path not in processes[key]["sensitive_paths"]:
@@ -323,36 +322,6 @@ tracepoint:syscalls:sys_enter_openat2
         return sorted(
             processes.values(),
             key=lambda p: (p["trust_score"], p["pid"]),
-        )
-
-    def _build_score_explanation(self, proc: dict) -> str:
-        counts = proc.get("event_counts", {})
-        parts = []
-
-        sensitive_count = counts.get("SENSITIVE_KERNEL_FILE_OPEN", 0)
-        if sensitive_count:
-            paths = ", ".join(proc.get("sensitive_paths", []))
-            parts.append(f"{counts['SENSITIVE_KERNEL_FILE_OPEN']} sensitive kernel file access(es)")
-
-        connect_count = counts.get("NETWORK_CONNECT_ATTEMPT", 0)
-        if connect_count:
-            parts.append(f"{counts['NETWORK_CONNECT_ATTEMPT']} outbound network connection(s)")
-
-        load_count = counts.get("MODULE_LOAD_ATTEMPT", 0)
-        if load_count:
-            parts.append(f"{load_count} kernel module load attempt(s)")
-
-        unload_count = counts.get("MODULE_UNLOAD_ATTEMPT", 0)
-        if unload_count:
-            parts.append(f"{unload_count} kernel module unload attempt(s)")
-
-        if not parts:
-            return "Only trusted/noisy routine activity was observed."
-
-        return (
-            f"Started at 100, lost {proc['total_penalty']} point(s) because MAKIM observed "
-            + "; ".join(parts)
-            + "."
         )
 
     def _print_summary(self, events: list, process_scores: list) -> None:
@@ -432,10 +401,3 @@ tracepoint:syscalls:sys_enter_openat2
             return "No suspicious runtime activity observed."
 
         return " + ".join(explanations)
-    
-    def confidence_from_score(score):
-        if score >= 80:
-            return "High"
-        elif score >= 50:
-            return "Medium"
-        return "Low"
