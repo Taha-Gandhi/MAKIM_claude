@@ -49,6 +49,7 @@ from makim.anomaly_detector import AnomalyDetector
 from makim.rootkit_pattern_agent import RootkitPatternAgent
 from makim.llm_analyst_agent import LLMAnalystAgent
 from makim.report_agent import ReportAgent
+from makim.live_sentinel_agent import LiveSentinelAgent
 
 # Configure logging for the whole application
 # logging.basicConfig sets up the logging system globally
@@ -108,6 +109,17 @@ class Orchestrator:
 
         print("\n  ✓ Baseline capture complete!")
         print("  Next time, run without --baseline to detect anomalies vs this snapshot.")
+
+    def run_live_sentinel(self, duration: int = 20) -> dict:
+        """
+        Live eBPF mode.
+
+        This mode runs the optional Agent 6. It watches selected kernel events
+        in real time using bpftrace when the host supports it.
+        """
+        print("\n  Starting live eBPF runtime monitoring...")
+        live_agent = LiveSentinelAgent(duration=duration)
+        return live_agent.run()
 
     def run(self) -> dict:
         """

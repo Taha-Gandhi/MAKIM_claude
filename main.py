@@ -7,13 +7,14 @@ Think of it as the "front door" of the program.
 HOW TO RUN:
   sudo -E python3 main.py             # Full scan (recommended)
   sudo -E python3 main.py --baseline   # Save a new trusted baseline snapshot
+  sudo -E python3 main.py --live       # Watch live kernel events with eBPF/bpftrace
   python main.py                   # Limited scan (no root access)
 
 WHAT IT DOES:
   1. Checks you're on Linux
   2. Warns if you're not root (some /proc files need root)
   3. Reads your OPENROUTER_API_KEY from environment
-  4. Hands control to the Orchestrator which runs all 5 agents
+  4. Hands control to the Orchestrator which runs the agents
 """
 
 import sys
@@ -35,6 +36,17 @@ def main():
         "--baseline",
         action="store_true",   # This means --baseline is a flag (True/False), not a value
         help="Capture a new trusted baseline snapshot of your system and exit"
+    )
+    parser.add_argument(
+        "--live",
+        action="store_true",
+        help="Run Agent 6 live eBPF/bpftrace monitoring mode"
+    )
+    parser.add_argument(
+        "--live-duration",
+        type=int,
+        default=20,
+        help="Seconds to run --live monitoring (default: 20)"
     )
     parser.add_argument(
         "--output",
@@ -64,9 +76,9 @@ def main():
         print("          For a full scan, run: sudo -E python3 main.py")
         print()
 
-    # ── 5. Read the Claude API key from environment variable ───────────────
+    # ── 5. Read the OpenRouter API key from environment variable ───────────
     # os.environ is a dictionary of all environment variables set in your shell
-    # You set it beforehand with: export ANTHROPIC_API_KEY='sk-ant-...'
+    # You set it beforehand with: export OPENROUTER_API_KEY='your-key'
     api_key = os.environ.get("OPENROUTER_API_KEY")
 
     if not api_key:
@@ -88,6 +100,10 @@ def main():
         print("[MODE] Baseline capture — saving trusted system snapshot...")
         orchestrator.capture_baseline()
         print("[DONE] Baseline saved. Run without --baseline next time to detect anomalies.")
+    elif args.live:
+        # --live mode: watch selected kernel events in real time using eBPF/bpftrace
+        print("[MODE] Live Sentinel — watching runtime kernel events...")
+        orchestrator.run_live_sentinel(duration=args.live_duration)
     else:
         # Normal mode: full scan with all 5 agents
         print("[MODE] Full scan — running all 5 agents...")

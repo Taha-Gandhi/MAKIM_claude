@@ -5,7 +5,7 @@
 
 ## What is MAKIM?
 
-MAKIM is a Python program that runs on Linux and uses 5 specialized AI agents to detect
+MAKIM is a Python program that runs on Linux and uses specialized AI/security agents to detect
 if your Linux system has been compromised by a rootkit — a type of malware that hides
 deep inside the operating system kernel.
 
@@ -16,8 +16,9 @@ Think of it like having 5 security guards, each with a specific job:
 | **Agent 1: Scanner** | Reads raw data from the kernel (like a camera recording everything) |
 | **Agent 2: Anomaly Detector** | Compares the recording to a known-good snapshot |
 | **Agent 3: Pattern Agent** | Checks for known rootkit tricks and behaviors |
-| **Agent 4: LLM Analyst** | Sends findings to Claude AI for intelligent reasoning |
+| **Agent 4: LLM Analyst** | Sends findings to OpenRouter for intelligent reasoning |
 | **Agent 5: Report Agent** | Formats everything into a readable report + JSON file |
+| **Agent 6: Live Sentinel** | Uses eBPF/bpftrace to watch selected kernel events in real time |
 
 ---
 
@@ -27,6 +28,7 @@ Think of it like having 5 security guards, each with a specific job:
 2. **Python 3.8 or later** — Check with: `python3 --version`
 3. **Root access** (recommended) — Some `/proc` files need `sudo`
 4. **An OpenRouter Free LLM API key** 
+5. **bpftrace** (optional) — Needed only for `--live` eBPF monitoring mode
 
 ---
 
@@ -80,6 +82,9 @@ python3 main.py
 
 # Get help
 python3 main.py --help
+
+# Watch live kernel events using eBPF/bpftrace
+sudo python3 main.py --live --live-duration 20
 ```
 
 ---
@@ -142,13 +147,44 @@ no readable status file — a discrepancy that hints at hidden processes.
 3. OpenRouter reads the findings and returns a JSON assessment
 4. We parse that JSON and include it in the report
 
+### What eBPF, BCC, and bpftrace Mean
+
+**eBPF** is a Linux kernel technology that lets you attach small, verified programs
+to kernel events. It is safer than loading a custom kernel module because the Linux
+kernel checks the program before allowing it to run.
+
+**BCC** is a toolkit that lets Python programs load and control eBPF programs. It is
+powerful, but it requires extra dependencies.
+
+**bpftrace** is a command-line tracing language built on eBPF. MAKIM starts with
+bpftrace because it is easier to install, easier to demo, and still shows real
+kernel runtime behavior.
+
+MAKIM's Live Sentinel mode currently watches:
+
+| Event | Why it matters |
+|-------|----------------|
+| `MODULE_LOAD_ATTEMPT` | Rootkits often enter the kernel as malicious modules |
+| `MODULE_UNLOAD_ATTEMPT` | Attackers may unload security tools or hide traces |
+| `SENSITIVE_KERNEL_FILE_OPEN` | Access to files like `/proc/kallsyms` can support kernel probing |
+| `NETWORK_CONNECT_ATTEMPT` | Helps correlate suspicious processes with outbound activity |
+
+Install bpftrace on Ubuntu/Debian:
+
+```bash
+sudo apt update
+sudo apt install -y bpftrace
+sudo python3 main.py --live --live-duration 20
+```
+
 ---
 
 ## Limitations & Important Notes
 
-1. **User-space only**: MAKIM runs in user-space and CANNOT match the detection
-   power of kernel-space tools or hardware-assisted memory analysis. A sophisticated
-   rootkit can potentially evade it.
+1. **Mostly user-space**: MAKIM's normal scan mode runs in user-space and CANNOT
+   match the detection power of kernel-space tools or hardware-assisted memory
+   analysis. The optional `--live` mode uses eBPF through bpftrace for runtime
+   visibility, but it is still a monitoring aid rather than a complete EDR.
 
 2. **Baseline quality matters**: The baseline must be created on a CLEAN system.
    If your system is already compromised when you run `--baseline`, the compromise
@@ -181,7 +217,8 @@ makim_project/
     ├── anomaly_detector.py      ← Agent 2: Baseline comparison
     ├── rootkit_pattern_agent.py ← Agent 3: Known rootkit signatures
     ├── llm_analyst_agent.py     ← Agent 4: OpenRouter API integration
-    └── report_agent.py          ← Agent 5: Terminal + JSON report
+    ├── report_agent.py          ← Agent 5: Terminal + JSON report
+    └── live_sentinel_agent.py   ← Agent 6: Optional eBPF/bpftrace live monitor
 ```
 
 ---

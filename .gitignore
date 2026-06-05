@@ -3,6 +3,7 @@ __pycache__/
 .env
 makim_baseline.json
 makim_report.json
+makim_live_events.json
 makim_ALERT.txt
 reports/
 baseline/
