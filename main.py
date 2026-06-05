@@ -25,6 +25,7 @@ import argparse  # argparse lets us accept --flags when running the script
 # Import our Orchestrator (the "manager" that coordinates all agents)
 from makim.orchestrator import Orchestrator
 from makim.demo_activity import run_demo_activity
+from makim.live_sentinel_agent import LiveSentinelAgent
 
 
 def main():
@@ -89,6 +90,13 @@ def main():
         print("          For a full scan, run: sudo -E python3 main.py")
         print()
 
+    if args.live:
+        # Live mode only needs Agent 6, so do not initialize the full LLM scan pipeline.
+        print("[MODE] Live Sentinel — watching runtime kernel events...")
+        print("\n  Starting live eBPF runtime monitoring...")
+        LiveSentinelAgent(duration=args.live_duration).run()
+        return
+
     # ── 5. Read the OpenRouter API key from environment variable ───────────
     # os.environ is a dictionary of all environment variables set in your shell
     # You set it beforehand with: export OPENROUTER_API_KEY='your-key'
@@ -113,10 +121,6 @@ def main():
         print("[MODE] Baseline capture — saving trusted system snapshot...")
         orchestrator.capture_baseline()
         print("[DONE] Baseline saved. Run without --baseline next time to detect anomalies.")
-    elif args.live:
-        # --live mode: watch selected kernel events in real time using eBPF/bpftrace
-        print("[MODE] Live Sentinel — watching runtime kernel events...")
-        orchestrator.run_live_sentinel(duration=args.live_duration)
     else:
         # Normal mode: full scan with all 5 agents
         print("[MODE] Full scan — running all 5 agents...")

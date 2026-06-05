@@ -19,6 +19,13 @@ import tempfile
 from datetime import datetime
 
 
+SENSITIVE_KERNEL_PATHS = {
+    "/proc/kallsyms",
+    "/proc/modules",
+    "/proc/sys/kernel/tainted",
+}
+
+
 class LiveSentinelAgent:
     """
     Agent 6: Live eBPF Runtime Sentinel.
@@ -120,9 +127,13 @@ tracepoint:syscalls:sys_enter_connect
 }
 
 tracepoint:syscalls:sys_enter_openat
-/str(args->filename) == "/proc/kallsyms" || str(args->filename) == "/proc/modules" || str(args->filename) == "/proc/sys/kernel/tainted"/
 {
-  printf("{\"event\":\"SENSITIVE_KERNEL_FILE_OPEN\",\"time\":%llu,\"pid\":%d,\"comm\":\"%s\",\"path\":\"%s\"}\n", nsecs, pid, comm, str(args->filename));
+  printf("{\"event\":\"FILE_OPEN_ATTEMPT\",\"time\":%llu,\"pid\":%d,\"comm\":\"%s\",\"path\":\"%s\",\"syscall\":\"openat\"}\n", nsecs, pid, comm, str(args->filename));
+}
+
+tracepoint:syscalls:sys_enter_openat2
+{
+  printf("{\"event\":\"FILE_OPEN_ATTEMPT\",\"time\":%llu,\"pid\":%d,\"comm\":\"%s\",\"path\":\"%s\",\"syscall\":\"openat2\"}\n", nsecs, pid, comm, str(args->filename));
 }
 '''
 
@@ -167,6 +178,12 @@ tracepoint:syscalls:sys_enter_openat
                 event = json.loads(line)
             except json.JSONDecodeError:
                 continue
+
+            if event.get("event") == "FILE_OPEN_ATTEMPT":
+                path = event.get("path")
+                if path not in SENSITIVE_KERNEL_PATHS:
+                    continue
+                event["event"] = "SENSITIVE_KERNEL_FILE_OPEN"
 
             event["severity"] = self._severity_for_event(event.get("event"))
             events.append(event)
