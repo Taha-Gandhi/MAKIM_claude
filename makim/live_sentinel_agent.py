@@ -294,6 +294,7 @@ tracepoint:syscalls:sys_enter_openat2
             processes[key]["trust_score"] = max(0, processes[key]["trust_score"] - penalty)
             processes[key]["total_penalty"] += penalty
             event_counts[key][event_type] += 1
+            process["confidence"] = confidence_from_score(process["trust_score"])
 
             path = event.get("path")
             if path and path not in processes[key]["sensitive_paths"]:
@@ -308,11 +309,11 @@ tracepoint:syscalls:sys_enter_openat2
             processes[key]["event_counts"] = dict(counts)
             processes[key]["score_explanation"] = (self._build_score_explanation(processes[key]))
             score = processes[key]["trust_score"]
-            if score >= 90:
+            if score >= 80:
                 label = "TRUSTED"
-            elif score >= 70:
+            elif score >= 50:
                 label = "WATCH"
-            elif score >= 40:
+            elif score >= 25:
                 label = "SUSPICIOUS"
             else:
                 label = "HIGH_RISK"
@@ -331,11 +332,11 @@ tracepoint:syscalls:sys_enter_openat2
         sensitive_count = counts.get("SENSITIVE_KERNEL_FILE_OPEN", 0)
         if sensitive_count:
             paths = ", ".join(proc.get("sensitive_paths", []))
-            parts.append(f"{sensitive_count} sensitive kernel file open(s): {paths}")
+            parts.append(f"{counts['SENSITIVE_KERNEL_FILE_OPEN']} sensitive kernel file access(es)")
 
         connect_count = counts.get("NETWORK_CONNECT_ATTEMPT", 0)
         if connect_count:
-            parts.append(f"{connect_count} network connect attempt(s)")
+            parts.append(f"{counts['NETWORK_CONNECT_ATTEMPT']} outbound network connection(s)")
 
         load_count = counts.get("MODULE_LOAD_ATTEMPT", 0)
         if load_count:
@@ -431,3 +432,10 @@ tracepoint:syscalls:sys_enter_openat2
             return "No suspicious runtime activity observed."
 
         return " + ".join(explanations)
+    
+    def confidence_from_score(score):
+        if score >= 80:
+            return "High"
+        elif score >= 50:
+            return "Medium"
+        return "Low"
