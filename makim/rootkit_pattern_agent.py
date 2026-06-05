@@ -249,7 +249,7 @@ class RootkitPatternAgent:
 
                             if "w" in permissions:
                                 highest_severity = "HIGH"
-                        if anon_exec_regions:
+                    if anon_exec_regions:
 
                             findings.append({
                                 "type": "ANON_EXECUTABLE_MAPPING",
