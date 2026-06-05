@@ -277,8 +277,11 @@ tracepoint:syscalls:sys_enter_openat2
                     "comm": comm,
                     "trust_score": 100,
                     "trust_label": "TRUSTED",
+                    "total_penalty": 0,
                     "reasons": [],
                     "event_counts": {},
+                    "sensitive_paths": [],
+                    "score_explanation": "",
                     "trusted_noise": False,
                 }
 
@@ -289,7 +292,12 @@ tracepoint:syscalls:sys_enter_openat2
                 processes[key]["trusted_noise"] = True
 
             processes[key]["trust_score"] = max(0, processes[key]["trust_score"] - penalty)
+            processes[key]["total_penalty"] += penalty
             event_counts[key][event_type] += 1
+
+            path = event.get("path")
+            if path and path not in processes[key]["sensitive_paths"]:
+                processes[key]["sensitive_paths"].append(path)
 
             if penalty:
                 reason = f"{event_type} (-{penalty})"
@@ -298,6 +306,7 @@ tracepoint:syscalls:sys_enter_openat2
 
         for key, counts in event_counts.items():
             processes[key]["event_counts"] = dict(counts)
+            processes[key]["score_explanation"] = (self._build_score_explanation(processes[key]))
             score = processes[key]["trust_score"]
             if score >= 90:
                 label = "TRUSTED"
@@ -308,10 +317,41 @@ tracepoint:syscalls:sys_enter_openat2
             else:
                 label = "HIGH_RISK"
             processes[key]["trust_label"] = label
+            processes[key]["score_explanation"] = self._build_score_explanation(processes[key])
 
         return sorted(
             processes.values(),
             key=lambda p: (p["trust_score"], p["pid"]),
+        )
+
+    def _build_score_explanation(self, proc: dict) -> str:
+        counts = proc.get("event_counts", {})
+        parts = []
+
+        sensitive_count = counts.get("SENSITIVE_KERNEL_FILE_OPEN", 0)
+        if sensitive_count:
+            paths = ", ".join(proc.get("sensitive_paths", []))
+            parts.append(f"{sensitive_count} sensitive kernel file open(s): {paths}")
+
+        connect_count = counts.get("NETWORK_CONNECT_ATTEMPT", 0)
+        if connect_count:
+            parts.append(f"{connect_count} network connect attempt(s)")
+
+        load_count = counts.get("MODULE_LOAD_ATTEMPT", 0)
+        if load_count:
+            parts.append(f"{load_count} kernel module load attempt(s)")
+
+        unload_count = counts.get("MODULE_UNLOAD_ATTEMPT", 0)
+        if unload_count:
+            parts.append(f"{unload_count} kernel module unload attempt(s)")
+
+        if not parts:
+            return "Only trusted/noisy routine activity was observed."
+
+        return (
+            f"Started at 100, lost {proc['total_penalty']} point(s) because MAKIM observed "
+            + "; ".join(parts)
+            + "."
         )
 
     def _print_summary(self, events: list, process_scores: list) -> None:
@@ -338,10 +378,18 @@ tracepoint:syscalls:sys_enter_openat2
         print("\n   Process trust scores:")
         for proc in process_scores[:10]:
             reasons = ", ".join(proc["reasons"]) if proc["reasons"] else "trusted/noisy routine activity"
+            explanation = proc.get(
+                    "score_explanation",
+                    "No explanation available."
+                )
             print(
-                f"   {proc['trust_score']:3d}/100 {proc['trust_label']:<10} "
-                f"pid={proc['pid']} comm={proc['comm']} - {reasons}"
+                f"   PID {proc['pid']} | "
+                f"{proc['comm']} | "
+                f"Score={proc['trust_score']} | "
+                f"{proc['trust_label']}"
             )
+
+            print(f"      Why this score? {explanation}")
 
     def _save_result(self, result: dict) -> None:
         try:
@@ -350,3 +398,36 @@ tracepoint:syscalls:sys_enter_openat2
             print(f"   Live Sentinel report saved to: {self.output_file}")
         except OSError as e:
             print(f"   [WARNING] Could not save live report: {e}")
+    def _build_score_explanation(self, process: dict) -> str:
+        """
+        Generate a human-readable explanation for a trust score.
+        """
+
+        counts = process.get("event_counts", {})
+
+        explanations = []
+
+        if counts.get("SENSITIVE_KERNEL_FILE_OPEN"):
+            explanations.append(
+                f"{counts['SENSITIVE_KERNEL_FILE_OPEN']} sensitive kernel file open(s)"
+            )
+
+        if counts.get("NETWORK_CONNECT_ATTEMPT"):
+            explanations.append(
+                f"{counts['NETWORK_CONNECT_ATTEMPT']} network connect attempt(s)"
+            )
+
+        if counts.get("MODULE_LOAD_ATTEMPT"):
+            explanations.append(
+                f"{counts['MODULE_LOAD_ATTEMPT']} module load attempt(s)"
+            )
+
+        if counts.get("MODULE_UNLOAD_ATTEMPT"):
+            explanations.append(
+                f"{counts['MODULE_UNLOAD_ATTEMPT']} module unload attempt(s)"
+            )
+
+        if not explanations:
+            return "No suspicious runtime activity observed."
+
+        return " + ".join(explanations)

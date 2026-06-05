@@ -190,6 +190,15 @@ and module load/unload attempts are high impact. Known noisy system services are
 kept in the JSON report but suppressed from the terminal view when they only
 produce routine network events.
 
+Each score includes a short explanation, for example:
+
+```text
+53/100 SUSPICIOUS pid=3898 comm=python3
+why: Started at 100, lost 47 point(s) because MAKIM observed 3 sensitive
+kernel file open(s): /proc/kallsyms, /proc/modules, /proc/sys/kernel/tainted;
+1 network connect attempt(s).
+```
+
 Install bpftrace on Ubuntu/Debian:
 
 ```bash
