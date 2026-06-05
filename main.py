@@ -8,6 +8,7 @@ HOW TO RUN:
   sudo -E python3 main.py             # Full scan (recommended)
   sudo -E python3 main.py --baseline   # Save a new trusted baseline snapshot
   sudo -E python3 main.py --live       # Watch live kernel events with eBPF/bpftrace
+  python3 main.py --demo-activity      # Trigger safe events for a live demo
   python main.py                   # Limited scan (no root access)
 
 WHAT IT DOES:
@@ -23,6 +24,7 @@ import argparse  # argparse lets us accept --flags when running the script
 
 # Import our Orchestrator (the "manager" that coordinates all agents)
 from makim.orchestrator import Orchestrator
+from makim.demo_activity import run_demo_activity
 
 
 def main():
@@ -49,6 +51,11 @@ def main():
         help="Seconds to run --live monitoring (default: 20)"
     )
     parser.add_argument(
+        "--demo-activity",
+        action="store_true",
+        help="Trigger harmless events that Agent 6 can capture during a live demo"
+    )
+    parser.add_argument(
         "--output",
         default="makim_report.json",
         help="Path to save the JSON report (default: makim_report.json)"
@@ -68,6 +75,12 @@ def main():
     if sys.platform != "linux":
         print(f"[ERROR] MAKIM only works on Linux. Detected platform: {sys.platform}")
         sys.exit(1)  # Exit with error code 1
+
+    if args.demo_activity:
+        # Demo activity mode: run harmless activity in a second terminal while --live watches.
+        print("[MODE] Demo Activity — triggering safe observable events...")
+        run_demo_activity()
+        return
 
     # ── 4. Warn if not running as root ─────────────────────────────────────
     # os.geteuid() returns 0 if you are root (the super-user), else your user ID

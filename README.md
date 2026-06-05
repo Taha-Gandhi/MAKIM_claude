@@ -85,6 +85,9 @@ python3 main.py --help
 
 # Watch live kernel events using eBPF/bpftrace
 sudo python3 main.py --live --live-duration 20
+
+# In a second terminal, trigger harmless demo events for Agent 6
+python3 main.py --demo-activity
 ```
 
 ---
@@ -176,6 +179,25 @@ sudo apt update
 sudo apt install -y bpftrace
 sudo python3 main.py --live --live-duration 20
 ```
+
+For a reliable classroom demo, use two terminals:
+
+Terminal 1:
+
+```bash
+cd ~/MAKIM_claude
+sudo python3 main.py --live --live-duration 30
+```
+
+Terminal 2, while Terminal 1 is still monitoring:
+
+```bash
+cd ~/MAKIM_claude
+python3 main.py --demo-activity
+```
+
+Expected result: Terminal 1 should show events such as
+`SENSITIVE_KERNEL_FILE_OPEN` and `NETWORK_CONNECT_ATTEMPT`.
 
 ---
 
