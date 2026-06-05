@@ -172,6 +172,21 @@ MAKIM's Live Sentinel mode currently watches:
 | `SENSITIVE_KERNEL_FILE_OPEN` | Access to files like `/proc/kallsyms` can support kernel probing |
 | `NETWORK_CONNECT_ATTEMPT` | Helps correlate suspicious processes with outbound activity |
 
+Live Sentinel also assigns each observed process a **trust score**:
+
+| Score Range | Label | Meaning |
+|-------------|-------|---------|
+| 90-100 | `TRUSTED` | Normal or low-risk observed behavior |
+| 70-89 | `WATCH` | Some suspicious activity worth reviewing |
+| 40-69 | `SUSPICIOUS` | Multiple or stronger suspicious indicators |
+| 0-39 | `HIGH_RISK` | Strong live indicators such as module-load behavior |
+
+The score starts at 100 and drops when MAKIM observes risky actions. For example,
+network connects are low impact, sensitive kernel file opens are medium impact,
+and module load/unload attempts are high impact. Known noisy system services are
+kept in the JSON report but suppressed from the terminal view when they only
+produce routine network events.
+
 Install bpftrace on Ubuntu/Debian:
 
 ```bash

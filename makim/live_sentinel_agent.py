@@ -16,13 +16,34 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from collections import defaultdict
 from datetime import datetime
+
+from makim.config_loader import ConfigLoader
 
 
 SENSITIVE_KERNEL_PATHS = {
     "/proc/kallsyms",
     "/proc/modules",
     "/proc/sys/kernel/tainted",
+}
+
+NOISY_TRUSTED_PROCESS_PREFIXES = {
+    "NetworkManager",
+    "systemd-resolve",
+    "unattended-upgr",
+    "dpkg-preconfigu",
+    "gnome-terminal-",
+    "pipewire-pulse",
+    "snapd",
+    "gdbus",
+}
+
+EVENT_TRUST_PENALTIES = {
+    "NETWORK_CONNECT_ATTEMPT": 2,
+    "SENSITIVE_KERNEL_FILE_OPEN": 15,
+    "MODULE_UNLOAD_ATTEMPT": 30,
+    "MODULE_LOAD_ATTEMPT": 40,
 }
 
 
@@ -38,6 +59,7 @@ class LiveSentinelAgent:
         self.duration = max(1, int(duration))
         self.output_file = output_file
         self.bpftrace_path = shutil.which("bpftrace")
+        self.allowlist = ConfigLoader.load_allowlist()
 
     def run(self) -> dict:
         print("\n[Agent 6/6] Live Sentinel - eBPF/bpftrace runtime monitoring...")
@@ -62,16 +84,18 @@ class LiveSentinelAgent:
 
         raw_lines = self._run_bpftrace(script)
         events = self._parse_events(raw_lines)
+        process_scores = self._score_processes(events)
 
         result = {
             "ready": True,
             "events": events,
             "event_count": len(events),
+            "process_trust_scores": process_scores,
             "started_at": datetime.now().isoformat(),
             "duration_seconds": self.duration,
             "bpftrace_path": self.bpftrace_path,
         }
-        self._print_summary(events)
+        self._print_summary(events, process_scores)
         self._save_result(result)
         return result
 
@@ -186,6 +210,7 @@ tracepoint:syscalls:sys_enter_openat2
                 event["event"] = "SENSITIVE_KERNEL_FILE_OPEN"
 
             event["severity"] = self._severity_for_event(event.get("event"))
+            event["trusted_noise"] = self._is_trusted_noise(event)
             events.append(event)
         return events
 
@@ -198,21 +223,97 @@ tracepoint:syscalls:sys_enter_openat2
             return "LOW"
         return "LOW"
 
-    def _print_summary(self, events: list) -> None:
+    def _is_trusted_noise(self, event: dict) -> bool:
+        comm = event.get("comm", "")
+        if event.get("event") != "NETWORK_CONNECT_ATTEMPT":
+            return False
+
+        prefixes = set(NOISY_TRUSTED_PROCESS_PREFIXES)
+        prefixes.update(self.allowlist.get("allowed_processes", []))
+        return any(comm.startswith(prefix) for prefix in prefixes)
+
+    def _score_processes(self, events: list) -> list:
+        processes = {}
+        event_counts = defaultdict(lambda: defaultdict(int))
+
+        for event in events:
+            pid = event.get("pid")
+            comm = event.get("comm", "unknown")
+            if pid is None:
+                continue
+
+            key = f"{pid}:{comm}"
+            if key not in processes:
+                processes[key] = {
+                    "pid": pid,
+                    "comm": comm,
+                    "trust_score": 100,
+                    "trust_label": "TRUSTED",
+                    "reasons": [],
+                    "event_counts": {},
+                    "trusted_noise": False,
+                }
+
+            event_type = event.get("event", "UNKNOWN")
+            penalty = EVENT_TRUST_PENALTIES.get(event_type, 1)
+            if event.get("trusted_noise"):
+                penalty = 0
+                processes[key]["trusted_noise"] = True
+
+            processes[key]["trust_score"] = max(0, processes[key]["trust_score"] - penalty)
+            event_counts[key][event_type] += 1
+
+            if penalty:
+                reason = f"{event_type} (-{penalty})"
+                if reason not in processes[key]["reasons"]:
+                    processes[key]["reasons"].append(reason)
+
+        for key, counts in event_counts.items():
+            processes[key]["event_counts"] = dict(counts)
+            score = processes[key]["trust_score"]
+            if score >= 90:
+                label = "TRUSTED"
+            elif score >= 70:
+                label = "WATCH"
+            elif score >= 40:
+                label = "SUSPICIOUS"
+            else:
+                label = "HIGH_RISK"
+            processes[key]["trust_label"] = label
+
+        return sorted(
+            processes.values(),
+            key=lambda p: (p["trust_score"], p["pid"]),
+        )
+
+    def _print_summary(self, events: list, process_scores: list) -> None:
         if not events:
             print("   No live eBPF events captured during the window.")
             return
 
         print(f"   Captured {len(events)} live event(s):")
-        for event in events[:20]:
+        visible_events = [event for event in events if not event.get("trusted_noise")]
+        hidden_count = len(events) - len(visible_events)
+
+        for event in visible_events[:20]:
             path = f" path={event['path']}" if "path" in event else ""
             print(
                 f"   [{event['severity']}] {event['event']} "
                 f"pid={event.get('pid')} comm={event.get('comm')}{path}"
             )
 
-        if len(events) > 20:
-            print(f"   ... {len(events) - 20} more event(s) saved to JSON")
+        if len(visible_events) > 20:
+            print(f"   ... {len(visible_events) - 20} more visible event(s) saved to JSON")
+        if hidden_count:
+            print(f"   Suppressed {hidden_count} trusted/noisy network event(s) from terminal view")
+
+        print("\n   Process trust scores:")
+        for proc in process_scores[:10]:
+            reasons = ", ".join(proc["reasons"]) if proc["reasons"] else "trusted/noisy routine activity"
+            print(
+                f"   {proc['trust_score']:3d}/100 {proc['trust_label']:<10} "
+                f"pid={proc['pid']} comm={proc['comm']} - {reasons}"
+            )
 
     def _save_result(self, result: dict) -> None:
         try:
