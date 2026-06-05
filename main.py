@@ -98,7 +98,7 @@ def main():
 
     if args.live or args.live_demo:
         # Live mode only needs Agent 6, so do not initialize the full LLM scan pipeline.
-        print("[MODE] Live Sentinel — watching runtime kernel events...")
+        print("[MODE] Live Sentinel Runtime Monitoring")
         print("\n  Starting live eBPF runtime monitoring...")
         LiveSentinelAgent(
             duration=args.live_duration,
@@ -132,7 +132,9 @@ def main():
         print("[DONE] Baseline saved. Run without --baseline next time to detect anomalies.")
     else:
         # Normal mode: full scan with all 5 agents
-        print("[MODE] Full scan — running all 5 agents...")
+        print("[MODE] Snapshot Analysis Pipeline")
+        print("")
+        print("  Running 5-agent system integrity assessment...")
         orchestrator.run()
 
 
