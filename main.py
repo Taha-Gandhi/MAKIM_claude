@@ -8,6 +8,7 @@ HOW TO RUN:
   sudo -E python3 main.py             # Full scan (recommended)
   sudo -E python3 main.py --baseline   # Save a new trusted baseline snapshot
   sudo -E python3 main.py --live       # Watch live kernel events with eBPF/bpftrace
+  sudo -E python3 main.py --live-demo  # Run live monitor with built-in safe demo
   python3 main.py --demo-activity      # Trigger safe events for a live demo
   python main.py                   # Limited scan (no root access)
 
@@ -44,6 +45,11 @@ def main():
         "--live",
         action="store_true",
         help="Run Agent 6 live eBPF/bpftrace monitoring mode"
+    )
+    parser.add_argument(
+        "--live-demo",
+        action="store_true",
+        help="Run Agent 6 and automatically trigger harmless demo activity"
     )
     parser.add_argument(
         "--live-duration",
@@ -90,11 +96,14 @@ def main():
         print("          For a full scan, run: sudo -E python3 main.py")
         print()
 
-    if args.live:
+    if args.live or args.live_demo:
         # Live mode only needs Agent 6, so do not initialize the full LLM scan pipeline.
         print("[MODE] Live Sentinel — watching runtime kernel events...")
         print("\n  Starting live eBPF runtime monitoring...")
-        LiveSentinelAgent(duration=args.live_duration).run()
+        LiveSentinelAgent(
+            duration=args.live_duration,
+            run_demo_activity=args.live_demo,
+        ).run()
         return
 
     # ── 5. Read the OpenRouter API key from environment variable ───────────

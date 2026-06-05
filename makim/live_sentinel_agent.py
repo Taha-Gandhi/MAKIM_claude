@@ -16,6 +16,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 from collections import defaultdict
 from datetime import datetime
 
@@ -55,9 +57,15 @@ class LiveSentinelAgent:
     the agent explains exactly what is needed instead of crashing.
     """
 
-    def __init__(self, duration: int = 20, output_file: str = "makim_live_events.json"):
+    def __init__(
+        self,
+        duration: int = 20,
+        output_file: str = "makim_live_events.json",
+        run_demo_activity: bool = False,
+    ):
         self.duration = max(1, int(duration))
         self.output_file = output_file
+        self.run_demo_activity = run_demo_activity
         self.bpftrace_path = shutil.which("bpftrace")
         self.allowlist = ConfigLoader.load_allowlist()
 
@@ -81,8 +89,11 @@ class LiveSentinelAgent:
         script = self._build_bpftrace_script()
         print(f"   Monitoring live kernel events for {self.duration} seconds...")
         print("   Watching: module loads, module unloads, sensitive file opens, outbound connects")
+        demo_thread = self._start_demo_activity_thread()
 
         raw_lines = self._run_bpftrace(script)
+        if demo_thread:
+            demo_thread.join(timeout=1)
         events = self._parse_events(raw_lines)
         process_scores = self._score_processes(events)
 
@@ -119,6 +130,23 @@ class LiveSentinelAgent:
             }
 
         return {"ready": True, "reason": "ready"}
+
+    def _start_demo_activity_thread(self):
+        if not self.run_demo_activity:
+            return None
+
+        def delayed_demo():
+            time.sleep(3)
+            print("\n   [DEMO] Auto-triggering safe demo activity while monitor is active...")
+            try:
+                from makim.demo_activity import run_demo_activity
+                run_demo_activity(delay=0.4)
+            except Exception as e:
+                print(f"   [DEMO] Demo activity failed: {e}")
+
+        thread = threading.Thread(target=delayed_demo, daemon=True)
+        thread.start()
+        return thread
 
     def _print_readiness_help(self, readiness: dict) -> None:
         print(f"   [INFO] {readiness['reason']}")

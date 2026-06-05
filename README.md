@@ -86,6 +86,9 @@ python3 main.py --help
 # Watch live kernel events using eBPF/bpftrace
 sudo python3 main.py --live --live-duration 20
 
+# One-command reliable live demo with automatic safe activity
+sudo python3 main.py --live-demo --live-duration 30
+
 # In a second terminal, trigger harmless demo events for Agent 6
 python3 main.py --demo-activity
 ```
@@ -213,6 +216,16 @@ python3 main.py --demo-activity
 
 Expected result: Terminal 1 should show events such as
 `SENSITIVE_KERNEL_FILE_OPEN` and `NETWORK_CONNECT_ATTEMPT`.
+
+If you want the most reliable single-command demo, use:
+
+```bash
+cd ~/MAKIM_claude
+sudo python3 main.py --live-demo --live-duration 30
+```
+
+This starts Live Sentinel first, waits briefly, then triggers MAKIM's harmless
+demo activity automatically so the timing cannot be missed.
 
 ---
 
